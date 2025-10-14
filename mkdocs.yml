@@ -1,0 +1,44 @@
+site_name: Hiyocord Documentation
+site_url: https://docs.hiyocord.com
+site_description: Official documentation for Hiyocord, the Discord bot for anime and manga enthusiasts
+site_author: Hiyocord Team
+repo_url: https://github.com/hiyocord/docs.hiyocord.org
+
+plugins:
+  search:
+    lang: ja
+  i18n:
+    languages:
+      - locale: ja
+        name: Japanese
+        default: true
+        build: true
+
+# theme:
+#   name: material
+#   locale: ja
+#   language: ja
+#   features:
+#     - navigation.tabs
+#     - navigation.top
+#     - navigation.instant
+#     - navigation.path
+#     - header.autohide
+#     - navigation.indexes
+#     - content.code.copy
+#     - search.suggest
+#     - search.highlight
+#     - content.action.edit
+#     - content.action.view
+
+# markdown_extensions:
+#   - pymdownx.magiclink
+#   - pymdownx.details
+#   - pymdownx.tilde
+#   - footnotes
+#   - admonition
+#   - plantuml_markdown
+#   - codehilite:
+#       noclasses: true
+#       pygments_style: colorful
+#       linenums: false

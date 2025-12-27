@@ -26,7 +26,7 @@ Discord → Nexus → Service Worker
 
 軽量で高速なWebフレームワーク[Hono](https://hono.dev/)を使用しています。
 
-```typescript
+```ts
 import { Hono } from "hono";
 
 const app = new Hono<{Bindings: {HIYOCORD_SECRET: string}}>();
@@ -104,7 +104,7 @@ npm run deploy
 
 `src/handlers/`ディレクトリに新しいハンドラーを作成します:
 
-```typescript
+```ts
 // src/handlers/hello.ts
 import {
   ApplicationCommandHandler,
@@ -129,7 +129,7 @@ export default {
 
 `src/register.ts`でハンドラーを登録します:
 
-```typescript
+```ts
 import {
   InteractionType,
   SimpleInteractionHandlerRegistry,
@@ -148,7 +148,7 @@ export const resolver = new SimpleInteractionHandlerResolver(registry);
 
 コマンドオプションを定義してユーザー入力を受け取ります:
 
-```typescript
+```ts
 // src/handlers/greet.ts
 import {
   ApplicationCommandHandler,
@@ -192,7 +192,7 @@ export default {
 
 サブコマンドを使用して、関連するコマンドをグループ化します:
 
-```typescript
+```ts
 // src/handlers/admin.ts
 import {
   ApplicationCommandHandler,
@@ -263,7 +263,7 @@ export default {
 
 ボタンを含むメッセージを送信します:
 
-```typescript
+```ts
 // src/handlers/confirm.ts
 import {
   ApplicationCommandHandler,
@@ -305,7 +305,7 @@ export default {
 
 ボタンクリックを処理します:
 
-```typescript
+```ts
 // src/handlers/confirm-buttons.ts
 import {
   MessageComponentHandler,
@@ -344,7 +344,7 @@ registry.register(InteractionType.MessageComponent, noHandler);
 
 セレクトメニューを使用して選択肢を提供します:
 
-```typescript
+```ts
 // src/handlers/choose.ts
 import {
   ApplicationCommandHandler,
@@ -397,7 +397,7 @@ export default {
 
 ### セレクトメニューハンドラー
 
-```typescript
+```ts
 // src/handlers/choose-handler.ts
 import {
   MessageComponentHandler,
@@ -425,7 +425,7 @@ registry.register(InteractionType.MessageComponent, selectHandler);
 
 モーダルフォームを表示します:
 
-```typescript
+```ts
 // src/handlers/feedback.ts
 import {
   ApplicationCommandHandler,
@@ -478,7 +478,7 @@ export default {
 
 モーダル送信を処理します:
 
-```typescript
+```ts
 // src/handlers/feedback-handler.ts
 import {
   ModalSubmitHandler,
@@ -513,28 +513,17 @@ registry.register(InteractionType.ModalSubmit, modalHandler);
 
 データを永続化するためにCloudflare KVを使用します:
 
-```typescript
+```ts
 // wrangler.config.ts に追加
-import type { WranglerConfigurerOptions } from "@hiyocord/wrangler-configurer";
-
 export default {
-  params: {
-    // ... 他の設定
-    kv_namespaces: [
-      { binding: "MY_KV", id: process.env["MY_KV_ID"] }
-    ]
-  }
-} satisfies WranglerConfigurerOptions;
+  // ...
+  kv_namespaces: [
+    { binding: "MY_KV", id: "your-kv-id" }
+  ]
+};
 ```
 
-環境変数でKV IDを指定することで、環境ごとに異なるKVネームスペースを使用できます:
-
-```bash
-export MY_KV_ID="your-kv-namespace-id"
-npx wrangler-configurer
-```
-
-```typescript
+```ts
 // src/index.ts で型を定義
 type Bindings = {
   HIYOCORD_SECRET: string;
@@ -544,7 +533,7 @@ type Bindings = {
 const app = new Hono<{Bindings: Bindings}>();
 ```
 
-```typescript
+```ts
 // src/handlers/save.ts
 import {
   ApplicationCommandHandler,
@@ -587,7 +576,7 @@ export default {
 
 ### 外部APIの呼び出し
 
-```typescript
+```ts
 // src/handlers/weather.ts
 import {
   ApplicationCommandHandler,
@@ -646,7 +635,7 @@ Service Workerをデプロイした後、Nexusにマニフェストを登録す�
 
 ### マニフェスト作成
 
-```typescript
+```ts
 // scripts/register-manifest.ts
 const manifest = {
   version: "1.0.0",
@@ -744,40 +733,30 @@ masterブランチにpushすると、GitHub Actionsが自動的にデプロイ�
 
 `wrangler.config.ts`でWorkerの設定を行います:
 
-```typescript
-import type { WranglerConfigurerOptions } from "@hiyocord/wrangler-configurer";
+```ts
+import { defineConfig } from "@hiyocord/wrangler-configurer";
 
-export default {
-  params: {
-    name: "my-bot-service",
-    main: "src/index.ts",
-    compatibility_date: "2025-10-08",
-    compatibility_flags: ["nodejs_compat"],
-    observability: {
+export default defineConfig({
+  name: "my-bot-service",
+  main: "src/index.ts",
+  compatibility_date: "2025-10-08",
+  compatibility_flags: ["nodejs_compat"],
+  observability: {
+    enabled: true,
+    head_sampling_rate: 1,  // すべてのリクエストをサンプリング
+    logs: {
       enabled: true,
-      head_sampling_rate: 1,  // すべてのリクエストをサンプリング
-      logs: {
-        enabled: true,
-        invocation_logs: true
-      }
+      invocation_logs: true
     }
   }
-} satisfies WranglerConfigurerOptions;
+});
 ```
-
-[@hiyocord/wrangler-configurer](../packages/index.ja.md#hiyocordwrangler-configurer)を使用して、TypeScriptで型安全な設定を記述できます。設定を`wrangler.jsonc`に変換するには:
-
-```bash
-npx wrangler-configurer
-```
-
-詳細は[Packages - @hiyocord/wrangler-configurer](../packages/index.ja.md#hiyocordwrangler-configurer)を参照してください。
 
 ### Vite設定
 
 `vite.config.ts`でビルド設定をカスタマイズします:
 
-```typescript
+```ts
 import { defineConfig } from "vite";
 import { cloudflareWorkersVitePlugin } from "@cloudflare/vite-plugin-cloudflare-workers";
 
@@ -807,7 +786,7 @@ TypeScriptの型を活用して、コンパイル時にエラーを検出しま�
 
 すべてのハンドラーで適切なエラーハンドリングを実装します:
 
-```typescript
+```ts
 handle: async (interaction) => {
   try {
     // 処理
@@ -830,7 +809,7 @@ handle: async (interaction) => {
 
 Discordは3秒以内のレスポンスを期待します。長時間かかる処理は遅延レスポンスを使用します:
 
-```typescript
+```ts
 // 即座に遅延レスポンスを返す
 const deferred = createBuilder(interaction)
   .deferReply()

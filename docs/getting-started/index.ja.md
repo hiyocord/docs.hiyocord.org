@@ -174,7 +174,7 @@ wrangler secret put HIYOCORD_SECRET
 
 `wrangler.config.ts`を編集:
 
-```typescript
+```ts
 import type { WranglerConfigurerOptions } from "@hiyocord/wrangler-configurer";
 
 export default {
@@ -207,7 +207,7 @@ npx wrangler-configurer
 
 `src/handlers/ping.ts`を作成:
 
-```typescript
+```ts
 import {
   ApplicationCommandHandler,
   createBuilder,
@@ -231,7 +231,7 @@ export default {
 
 `src/register.ts`を編集:
 
-```typescript
+```ts
 import {
   InteractionType,
   SimpleInteractionHandlerRegistry,
@@ -261,7 +261,7 @@ npm run deploy
 
 `scripts/register-manifest.ts`を作成:
 
-```typescript
+```ts
 const NEXUS_URL = "https://hiyocord-nexus.your-subdomain.workers.dev";
 const WORKER_URL = "https://my-discord-bot.your-subdomain.workers.dev";
 
@@ -330,7 +330,7 @@ Discordサーバーで `/` を入力すると、登録したコマンドが表�
 
 #### ユーザー情報の取得
 
-```typescript
+```ts
 // src/handlers/userinfo.ts
 import {
   ApplicationCommandHandler,
@@ -395,7 +395,7 @@ export default {
 
 #### ボタン付きメッセージ
 
-```typescript
+```ts
 // src/handlers/vote.ts
 import {
   ApplicationCommandHandler,

@@ -67,7 +67,7 @@ Nexus管理用のWeb UIを提供する予定のパッケージです（開発中
 
 ### マニフェストスキーマ v1.0.0
 
-```typescript
+```ts
 interface Manifest {
   version: string;           // "1.0.0"
   id: string;                // サービスの一意識別子
@@ -86,7 +86,7 @@ interface Manifest {
 
 ### マニフェスト登録の例
 
-```typescript
+```ts
 const manifest = {
   version: "1.0.0",
   id: "my-bot-service",
@@ -118,7 +118,7 @@ await fetch("https://nexus.hiyocord.org/manifest", {
 Nexusは、interactionのタイプに応じて適切なマニフェストを検索します。
 
 #### 1. Application Commands (スラッシュコマンド)
-```typescript
+```ts
 // /test コマンドの場合
 1. グローバルコマンドからマニフェストを検索
 2. 見つからない場合、ギルド固有コマンドから検索
@@ -126,14 +126,14 @@ Nexusは、interactionのタイプに応じて適切なマニフェストを検�
 ```
 
 #### 2. Message Components (ボタン・メニュー)
-```typescript
+```ts
 // custom_id: "confirm_action" の場合
 1. message_components配列に "confirm_action" を含むマニフェストを検索
 2. マッチしたサービスにリクエストを転送
 ```
 
 #### 3. Modal Submits
-```typescript
+```ts
 // custom_id: "feedback_modal" の場合
 1. modal_submits配列に "feedback_modal" を含むマニフェストを検索
 2. マッチしたサービスにリクエストを転送
@@ -155,7 +155,7 @@ Nexusは、interactionのタイプに応じて適切なマニフェストを検�
 
 Nexusは、Discord APIからのリクエストを検証します:
 
-```typescript
+```ts
 import { verifyKey } from "discord-interactions";
 
 // Ed25519署名検証
@@ -183,7 +183,7 @@ const isValid = verifyKey(
 - タイムスタンプチェック（1分以内）
 - 署名の暗号学的検証
 
-```typescript
+```ts
 import { sign } from "@hiyocord/hiyocord-nexus-core";
 
 const { headers, signature } = await sign({

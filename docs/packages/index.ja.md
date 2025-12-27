@@ -54,7 +54,7 @@ npm install -D @hiyocord/wrangler-configurer
 
 プロジェクトルートに`wrangler.config.ts`を配置します:
 
-```typescript
+```ts
 // wrangler.config.ts
 import type { WranglerConfigurerOptions } from '@hiyocord/wrangler-configurer'
 
@@ -94,7 +94,7 @@ npx wrangler-configurer
 
 **使用例（Hiyocord Nexus）:**
 
-```typescript
+```ts
 // wrangler.config.ts
 import type { WranglerConfigurerOptions } from '@hiyocord/wrangler-configurer'
 
@@ -157,7 +157,7 @@ OpenAPI仕様ベースのREST APIクライアント基盤パッケージです�
 
 **基本的な使い方:**
 
-```typescript
+```ts
 import { createClient } from "@hiyocord/rest-api-core";
 import type { paths } from "./api-spec.gen";
 
@@ -173,7 +173,7 @@ const { data, error } = await client.GET("/users/{id}", {
 
 **カスタムショートカットの追加:**
 
-```typescript
+```ts
 const shortcuts = {
   async getUser(id: string) {
     return this.GET("/users/{id}", {
@@ -221,7 +221,7 @@ npm install @hiyocord/discord-rest-api
 
 **基本的な使い方:**
 
-```typescript
+```ts
 import { getClient } from "@hiyocord/discord-rest-api";
 
 const discord = getClient("YOUR_BOT_TOKEN");
@@ -299,7 +299,7 @@ npm install @hiyocord/github-rest-api
 
 **基本的な使い方:**
 
-```typescript
+```ts
 import { getClient } from "@hiyocord/github-rest-api";
 
 const github = getClient("YOUR_GITHUB_TOKEN");
@@ -377,7 +377,7 @@ npm install @hiyocord/discord-interaction-client
 
 Discord API v10で定義されているすべてのinteractionタイプをサポートします:
 
-```typescript
+```ts
 import {
   InteractionType,
   ApplicationCommandType
@@ -395,7 +395,7 @@ import {
 
 ハンドラーをinteractionタイプ別に登録します:
 
-```typescript
+```ts
 import {
   SimpleInteractionHandlerRegistry,
   InteractionType
@@ -420,7 +420,7 @@ registry.register(InteractionType.ApplicationCommand, {
 
 登録されたハンドラーから適切なものを解決します:
 
-```typescript
+```ts
 import {
   SimpleInteractionHandlerResolver,
   DelegatingTypedInteractionHandlerResolver
@@ -436,7 +436,7 @@ const delegatingResolver = new DelegatingTypedInteractionHandlerResolver(registr
 
 流暢なインターフェースでinteractionレスポンスを構築します:
 
-```typescript
+```ts
 import {
   createBuilder,
   MessageFlags
@@ -485,7 +485,7 @@ const modal = createBuilder(interaction)
 
 #### 完全な使用例
 
-```typescript
+```ts
 import {
   SimpleInteractionHandlerRegistry,
   SimpleInteractionHandlerResolver,
@@ -531,7 +531,7 @@ export default {
 
 スラッシュコマンドを処理します:
 
-```typescript
+```ts
 import type { ApplicationCommandHandler } from "@hiyocord/discord-interaction-client";
 
 const commandHandler: ApplicationCommandHandler = {
@@ -559,7 +559,7 @@ const commandHandler: ApplicationCommandHandler = {
 
 ボタンやセレクトメニューを処理します:
 
-```typescript
+```ts
 import type { MessageComponentHandler } from "@hiyocord/discord-interaction-client";
 
 const buttonHandler: MessageComponentHandler = {
@@ -580,7 +580,7 @@ registry.register(InteractionType.MessageComponent, buttonHandler);
 
 モーダル送信を処理します:
 
-```typescript
+```ts
 import type { ModalSubmitHandler } from "@hiyocord/discord-interaction-client";
 
 const modalHandler: ModalSubmitHandler = {
@@ -602,7 +602,7 @@ registry.register(InteractionType.ModalSubmit, modalHandler);
 
 オートコンプリートを処理します:
 
-```typescript
+```ts
 import type { AutocompleteHandler } from "@hiyocord/discord-interaction-client";
 
 const autocompleteHandler: AutocompleteHandler = {
@@ -642,7 +642,7 @@ registry.register(InteractionType.ApplicationCommandAutocomplete, autocompleteHa
 
 #### 高度な使用例: エンベッド付きメッセージ
 
-```typescript
+```ts
 const handler: ApplicationCommandHandler = {
   name: "info",
   description: "Shows bot information",
@@ -774,7 +774,7 @@ npm run openapi
 
 OpenAPI生成型を活用して、コンパイル時にAPIエラーを検出します:
 
-```typescript
+```ts
 // 型エラー: 存在しないパスパラメータ
 await discord.GET("/guilds/{guild.id}", {
   params: { path: { invalid_param: "123" } }  // ❌ エラー
@@ -790,7 +790,7 @@ await discord.GET("/guilds/{guild.id}", {
 
 各コマンドハンドラーを個別のファイルに分離します:
 
-```typescript
+```ts
 // handlers/ping.ts
 export default {
   name: "ping",
@@ -807,7 +807,7 @@ registry.register(InteractionType.ApplicationCommand, pingHandler);
 
 適切なエラーハンドリングを実装します:
 
-```typescript
+```ts
 const handler: ApplicationCommandHandler = {
   name: "data",
   description: "Fetches data",
@@ -833,7 +833,7 @@ const handler: ApplicationCommandHandler = {
 
 ビルダーパターンで可読性の高いコードを書きます:
 
-```typescript
+```ts
 // ❌ 生のオブジェクト
 return {
   type: 4,

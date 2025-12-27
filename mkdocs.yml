@@ -9,7 +9,14 @@ nav:
   - ホーム: index.ja.md
   - Getting Started: getting-started/index.ja.md
   - Hiyocord Nexus: nexus/index.ja.md
-  - Hiyocord Packages: packages/index.ja.md
+  - Hiyocord Packages:
+    - 概要: packages/index.ja.md
+    - '@hiyocord/tsconfig': packages/tsconfig.ja.md
+    - '@hiyocord/wrangler-configurer': packages/wrangler-configurer.ja.md
+    - '@hiyocord/rest-api-core': packages/rest-api-core.ja.md
+    - '@hiyocord/discord-rest-api': packages/discord-rest-api.ja.md
+    - '@hiyocord/github-rest-api': packages/github-rest-api.ja.md
+    - '@hiyocord/discord-interaction-client': packages/discord-interaction-client.ja.md
   - Service Workers: service-workers/index.ja.md
 
 plugins:
@@ -26,6 +33,9 @@ theme:
   name: material
   locale: ja
   language: ja
+  highlightjs: true
+  hljs_languages:
+    - typescript
   palette:
     - scheme: default
       primary: indigo
@@ -59,8 +69,6 @@ theme:
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
-      line_spans: __span
-      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences

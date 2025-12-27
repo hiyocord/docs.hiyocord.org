@@ -515,12 +515,23 @@ registry.register(InteractionType.ModalSubmit, modalHandler);
 
 ```typescript
 // wrangler.config.ts に追加
+import type { WranglerConfigurerOptions } from "@hiyocord/wrangler-configurer";
+
 export default {
-  // ...
-  kv_namespaces: [
-    { binding: "MY_KV", id: "your-kv-id" }
-  ]
-};
+  params: {
+    // ... 他の設定
+    kv_namespaces: [
+      { binding: "MY_KV", id: process.env["MY_KV_ID"] }
+    ]
+  }
+} satisfies WranglerConfigurerOptions;
+```
+
+環境変数でKV IDを指定することで、環境ごとに異なるKVネームスペースを使用できます:
+
+```bash
+export MY_KV_ID="your-kv-namespace-id"
+npx wrangler-configurer
 ```
 
 ```typescript
@@ -734,23 +745,33 @@ masterブランチにpushすると、GitHub Actionsが自動的にデプロイ�
 `wrangler.config.ts`でWorkerの設定を行います:
 
 ```typescript
-import { defineConfig } from "@hiyocord/wrangler-configurer";
+import type { WranglerConfigurerOptions } from "@hiyocord/wrangler-configurer";
 
-export default defineConfig({
-  name: "my-bot-service",
-  main: "src/index.ts",
-  compatibility_date: "2025-10-08",
-  compatibility_flags: ["nodejs_compat"],
-  observability: {
-    enabled: true,
-    head_sampling_rate: 1,  // すべてのリクエストをサンプリング
-    logs: {
+export default {
+  params: {
+    name: "my-bot-service",
+    main: "src/index.ts",
+    compatibility_date: "2025-10-08",
+    compatibility_flags: ["nodejs_compat"],
+    observability: {
       enabled: true,
-      invocation_logs: true
+      head_sampling_rate: 1,  // すべてのリクエストをサンプリング
+      logs: {
+        enabled: true,
+        invocation_logs: true
+      }
     }
   }
-});
+} satisfies WranglerConfigurerOptions;
 ```
+
+[@hiyocord/wrangler-configurer](../packages/index.ja.md#hiyocordwrangler-configurer)を使用して、TypeScriptで型安全な設定を記述できます。設定を`wrangler.jsonc`に変換するには:
+
+```bash
+npx wrangler-configurer
+```
+
+詳細は[Packages - @hiyocord/wrangler-configurer](../packages/index.ja.md#hiyocordwrangler-configurer)を参照してください。
 
 ### Vite設定
 

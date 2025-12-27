@@ -175,22 +175,32 @@ wrangler secret put HIYOCORD_SECRET
 `wrangler.config.ts`を編集:
 
 ```typescript
-import { defineConfig } from "@hiyocord/wrangler-configurer";
+import type { WranglerConfigurerOptions } from "@hiyocord/wrangler-configurer";
 
-export default defineConfig({
-  name: "my-discord-bot",  // 変更
-  main: "src/index.ts",
-  compatibility_date: "2025-10-08",
-  compatibility_flags: ["nodejs_compat"],
-  observability: {
-    enabled: true,
-    head_sampling_rate: 1,
-    logs: {
+export default {
+  params: {
+    name: "my-discord-bot",  // 変更
+    main: "src/index.ts",
+    compatibility_date: "2025-10-08",
+    compatibility_flags: ["nodejs_compat"],
+    observability: {
       enabled: true,
-      invocation_logs: true
+      head_sampling_rate: 1,
+      logs: {
+        enabled: true,
+        invocation_logs: true
+      }
     }
   }
-});
+} satisfies WranglerConfigurerOptions;
+```
+
+`wrangler.config.ts`は[@hiyocord/wrangler-configurer](../packages/index.ja.md#hiyocordwrangler-configurer)によって読み込まれ、`wrangler.jsonc`に変換されます。このツールを使用することで、環境固有の設定（KVネームスペースIDなど）をバージョン管理から分離できます。
+
+設定を反映するには:
+
+```bash
+npx wrangler-configurer
 ```
 
 ### 4.6 最初のコマンドの作成

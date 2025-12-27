@@ -1,44 +1,84 @@
 site_name: Hiyocord Documentation
 site_url: https://docs.hiyocord.com
-site_description: Official documentation for Hiyocord, the Discord bot for anime and manga enthusiasts
+site_description: Discord bot開発基盤 - Cloudflare Workers上で動作する分散マイクロサービス群
 site_author: Hiyocord Team
 repo_url: https://github.com/hiyocord/docs.hiyocord.org
+edit_uri: edit/master/docs/
+
+nav:
+  - ホーム: index.ja.md
+  - Getting Started: getting-started/index.ja.md
+  - Hiyocord Nexus: nexus/index.ja.md
+  - Hiyocord Packages: packages/index.ja.md
+  - Service Workers: service-workers/index.ja.md
 
 plugins:
-  search:
-    lang: ja
-  i18n:
-    languages:
-      - locale: ja
-        name: Japanese
-        default: true
-        build: true
+  - search:
+      lang: ja
+  - i18n:
+      languages:
+        - locale: ja
+          name: Japanese
+          default: true
+          build: true
 
-# theme:
-#   name: material
-#   locale: ja
-#   language: ja
-#   features:
-#     - navigation.tabs
-#     - navigation.top
-#     - navigation.instant
-#     - navigation.path
-#     - header.autohide
-#     - navigation.indexes
-#     - content.code.copy
-#     - search.suggest
-#     - search.highlight
-#     - content.action.edit
-#     - content.action.view
+theme:
+  name: material
+  locale: ja
+  language: ja
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: ダークモードに切り替え
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: ライトモードに切り替え
+  features:
+    - navigation.tabs
+    - navigation.top
+    - navigation.instant
+    - navigation.path
+    - navigation.indexes
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+    - content.code.annotate
+    - search.suggest
+    - search.highlight
+    - content.action.edit
+    - content.action.view
+  icon:
+    repo: fontawesome/brands/github
 
-# markdown_extensions:
-#   - pymdownx.magiclink
-#   - pymdownx.details
-#   - pymdownx.tilde
-#   - footnotes
-#   - admonition
-#   - plantuml_markdown
-#   - codehilite:
-#       noclasses: true
-#       pygments_style: colorful
-#       linenums: false
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - admonition
+  - footnotes
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/hiyocord

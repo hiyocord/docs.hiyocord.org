@@ -9,16 +9,19 @@ Hiyocord Packagesは、Hiyocordエコシステムで使用される共有ライ�
 TypeScript設定ファイルの共有パッケージです。
 
 **用途:**
+
 - モノレポ全体で一貫したTypeScript設定を提供
 - 環境別の設定（Node.js、Workers、Test）
 
 **設定ファイル:**
+
 - `node/tsconfig.json` - Node.js環境用
 - `shared/tsconfig.json` - 共通設定
 - `test/tsconfig.json` - テスト環境用
 - `workers/tsconfig.json` - Cloudflare Workers用
 
 **使用例:**
+
 ```json
 {
   "extends": "@hiyocord/tsconfig/node/tsconfig.json"
@@ -32,14 +35,17 @@ TypeScript設定ファイルの共有パッケージです。
 OpenAPI仕様ベースのREST APIクライアント基盤パッケージです。
 
 **概要:**
+
 `openapi-fetch`をラップし、再利用可能なREST APIクライアントファクトリを提供します。
 
 **主な機能:**
+
 - OpenAPI仕様からの型安全なクライアント生成
 - 拡張可能な「ショートカット」システム
 - HTTPメソッドの小文字ショートカット（get, post, put, delete, patch等）
 
 **基本的な使い方:**
+
 ```typescript
 import { createClient } from "@hiyocord/rest-api-core";
 import type { paths } from "./api-spec.gen";
@@ -55,6 +61,7 @@ const { data, error } = await client.GET("/users/{id}", {
 ```
 
 **カスタムショートカットの追加:**
+
 ```typescript
 const shortcuts = {
   async getUser(id: string) {
@@ -74,6 +81,7 @@ const { data } = await client.getUser("123");
 ```
 
 **パッケージ情報:**
+
 - バージョン: v2.0.0
 - 依存: `openapi-fetch@^0.15.0`
 - レジストリ: GitHub Packages
@@ -85,19 +93,23 @@ const { data } = await client.getUser("123");
 Discord REST API v10の型安全なTypeScriptクライアントです。
 
 **概要:**
+
 公式のDiscord OpenAPI仕様から自動生成された型定義を使用し、Botトークン認証を自動で処理します。
 
 **主な機能:**
+
 - Discord API v10の完全な型サポート
 - 自動Botトークン注入
 - OpenAPI仕様からの型生成
 
 **インストール:**
+
 ```bash
 npm install @hiyocord/discord-rest-api
 ```
 
 **基本的な使い方:**
+
 ```typescript
 import { getClient } from "@hiyocord/discord-rest-api";
 
@@ -134,6 +146,7 @@ const { data: command } = await discord.POST(
 ```
 
 **OpenAPI型の再生成:**
+
 ```bash
 npm run openapi
 ```
@@ -141,9 +154,11 @@ npm run openapi
 このコマンドは、最新のDiscord OpenAPI仕様をダウンロードし、`discord-api-spec.gen.ts`を再生成します。
 
 **TODO:**
+
 - レート制限処理の実装
 
 **パッケージ情報:**
+
 - バージョン: v2.0.2
 - 依存: `openapi-fetch@^0.15.0`
 - レジストリ: GitHub Packages
@@ -156,19 +171,23 @@ npm run openapi
 GitHub REST APIの型安全なTypeScriptクライアントです。
 
 **概要:**
+
 公式のGitHub OpenAPI仕様から自動生成された型定義を使用します。Discord REST APIクライアントと同様のパターンで実装されています。
 
 **主な機能:**
+
 - GitHub REST APIの完全な型サポート
 - 自動トークン認証
 - ESMとCommonJSの両方をサポート
 
 **インストール:**
+
 ```bash
 npm install @hiyocord/github-rest-api
 ```
 
 **基本的な使い方:**
+
 ```typescript
 import { getClient } from "@hiyocord/github-rest-api";
 
@@ -200,6 +219,7 @@ const { data: issue } = await github.POST("/repos/{owner}/{repo}/issues", {
 ```
 
 **OpenAPI型の再生成:**
+
 ```bash
 npm run openapi
 ```
@@ -207,10 +227,12 @@ npm run openapi
 このコマンドは、最新のGitHub OpenAPI仕様をダウンロードし、`github-api-spec.gen.ts`を再生成します。
 
 **TODO:**
+
 - GitHub Apps認証サポート
 - Personal Access Token (PAT)サポートの実装
 
 **パッケージ情報:**
+
 - バージョン: v1.0.2
 - 依存: `openapi-fetch@^0.15.0`
 - レジストリ: GitHub Packages
@@ -223,14 +245,17 @@ npm run openapi
 Discord bot interactionの処理とレスポンス構築のための高レベルクライアントです。
 
 **概要:**
+
 Discord interactionハンドラーの登録、解決、レスポンスビルダーなど、Discord botの開発に必要な機能を提供します。
 
 **主な機能:**
+
 - Interactionハンドラーのレジストリパターン
 - 型安全なレスポンスビルダー
 - Fetch API互換のハンドラーインターフェース
 
 **インストール:**
+
 ```bash
 npm install @hiyocord/discord-interaction-client
 ```
@@ -542,6 +567,7 @@ const handler: ApplicationCommandHandler = {
 ```
 
 **パッケージ情報:**
+
 - バージョン: v0.0.6
 - 依存: `discord-api-types@^0.38.37`
 - レジストリ: GitHub Packages

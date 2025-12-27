@@ -14,6 +14,7 @@ Hiyocordは3つの主要なコンポーネントで構成されています:
 Discord interactionの中央ハブとして機能します。Discordからのインタラクション（コマンド、ボタンクリック、モーダル送信など）を受け取り、登録されたマニフェストに基づいて適切なサービスワーカーにルーティングします。
 
 **主な機能:**
+
 - Discord interactionの検証とルーティング
 - マニフェストベースのサービス登録
 - Discord APIへの自動コマンド登録
@@ -25,6 +26,7 @@ Discord interactionの中央ハブとして機能します。Discordからのイ
 共有ライブラリとAPIラッパーのコレクションです。Discord REST API、GitHub REST API、interaction処理などの共通機能を提供します。
 
 **含まれるパッケージ:**
+
 - `@hiyocord/discord-rest-api` - Discord API v10クライアント
 - `@hiyocord/github-rest-api` - GitHub APIクライアント
 - `@hiyocord/discord-interaction-client` - Interaction処理とレスポンスビルダー
@@ -36,6 +38,7 @@ Discord interactionの中央ハブとして機能します。Discordからのイ
 Discord bot機能を実装するためのテンプレートリポジトリです。Cloudflare Workers上でDiscord interactionを処理し、Nexusと連携して動作します。
 
 **特徴:**
+
 - Honoフレームワークベースの軽量実装
 - レジストリパターンによるハンドラー管理
 - 自動デプロイパイプライン

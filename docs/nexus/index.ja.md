@@ -26,10 +26,12 @@ Nexusは3つのパッケージで構成されています:
 メインのCloudflare Workerアプリケーションです。
 
 **エンドポイント:**
+
 - `POST /interactions` - Discord interactionの受付とルーティング
 - `POST /manifest` - サービスマニフェストの登録
 
 **主な機能:**
+
 - Discord署名検証
 - Interactionルーティング
 - マニフェスト管理
@@ -39,6 +41,7 @@ Nexusは3つのパッケージで構成されています:
 再利用可能なコアライブラリです。
 
 **提供機能:**
+
 - リクエスト署名（HMAC-SHA256）
 - 署名検証ミドルウェア
 - Discord APIクライアントミドルウェア
@@ -48,6 +51,7 @@ Nexusは3つのパッケージで構成されています:
 型定義とスキーマを提供します。
 
 **含まれる型:**
+
 - Manifestスキーマ（v1.0.0）
 - DiscordCommandビルダー
 - OpenAPI生成型
@@ -168,12 +172,14 @@ const isValid = verifyKey(
 サービスワーカーへのリクエストには独自の署名を付与します:
 
 **署名生成:**
+
 1. ヘッダーの正規化（アルファベット順、CF-*ヘッダーを除外）
 2. リクエストボディとヘッダーを結合
 3. HMAC-SHA256で署名
 4. Hex形式で出力
 
 **署名検証:**
+
 - タイムスタンプチェック（1分以内）
 - 署名の暗号学的検証
 
@@ -253,6 +259,7 @@ GitHub Actionsによる自動デプロイが設定されています:
 Discord interactionを処理します。
 
 **リクエスト:**
+
 ```json
 {
   "type": 2,
@@ -267,6 +274,7 @@ Discord interactionを処理します。
 ```
 
 **レスポンス:**
+
 ```json
 {
   "type": 4,
@@ -281,6 +289,7 @@ Discord interactionを処理します。
 サービスマニフェストを登録します。
 
 **リクエスト:**
+
 ```json
 {
   "version": "1.0.0",
@@ -299,6 +308,7 @@ Discord interactionを処理します。
 ```
 
 **レスポンス:**
+
 ```json
 {
   "success": true,

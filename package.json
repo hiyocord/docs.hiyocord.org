@@ -5,6 +5,6 @@
     "deploy": "wrangler pages deploy site"
   },
   "devDependencies": {
-    "wrangler": "^4.54.0"
+    "wrangler": "4.54.0"
   }
 }

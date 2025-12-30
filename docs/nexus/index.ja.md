@@ -69,20 +69,29 @@ Nexus管理用のWeb UIを提供する予定のパッケージです（開発中
 
 ```ts
 interface Manifest {
-  version: string;           // "1.0.0"
-  id: string;                // サービスの一意識別子
-  name: string;              // サービス名
-  base_url: string;          // サービスのベースURL
-  application_commands: {    // アプリケーションコマンド定義
-    global?: Command[];      // グローバルコマンド
-    guild?: {
-      [guild_id: string]: Command[];  // ギルド固有コマンド
-    };
+  version: string;                    // "1.0.0"
+  id: string;                         // サービスの一意識別子
+  name: string;                       // サービス名
+  base_url: string;                   // サービスのベースURL
+  description: string;                // サービスの説明
+  signature_algorithm: string;        // 署名アルゴリズム（例: "ed25519"）
+  public_key: string;                 // Base64エンコードされた公開鍵
+  application_commands: {             // アプリケーションコマンド定義
+    global: Command[];                // グローバルコマンド
+    guild: GuildCommand[];            // ギルド固有コマンド
   };
-  message_components?: string[];  // 処理するボタン/メニューのcustom_id
-  modal_submits?: string[];       // 処理するモーダルのcustom_id
+  message_component_ids: string[];    // 処理するボタン/メニューのcustom_id
+  modal_submit_ids: string[];         // 処理するモーダルのcustom_id
+  permissions?: Permission[];         // 必要なパーミッション
 }
 ```
+
+**重要なフィールド:**
+
+- `message_component_ids`: ボタンやセレクトメニューなどのメッセージコンポーネントのcustom_idを配列で指定
+- `modal_submit_ids`: モーダル送信のcustom_idを配列で指定
+- `signature_algorithm`: Service Workerの署名アルゴリズム（現在は "ed25519" のみサポート）
+- `public_key`: Service WorkerがNexusへリクエストする際の署名検証用公開鍵
 
 ### マニフェスト登録の例
 
@@ -125,29 +134,75 @@ Nexusは、interactionのタイプに応じて適切なマニフェストを検�
 3. マッチしたサービスにリクエストを転送
 ```
 
-#### 2. Message Components (ボタン・メニュー)
+#### 2. Message Components (ボタン・セレクトメニュー)
+
+メッセージコンポーネントのインタラクションは、`custom_id`でルーティングされます。
+
 ```ts
-// custom_id: "confirm_action" の場合
-1. message_components配列に "confirm_action" を含むマニフェストを検索
+// ボタンクリック: custom_id = "confirm_action"
+// セレクトメニュー選択: custom_id = "role_select"
+
+1. message_component_ids配列に該当のcustom_idを含むマニフェストを検索
 2. マッチしたサービスにリクエストを転送
 ```
 
+**例**: ボタンハンドラーの実装
+
+```typescript
+// Service Worker側
+import { createManifest } from "@hiyocord/hiyocord-nexus-core";
+
+const manifest = createManifest({
+  id: "my-service",
+  name: "My Service",
+  baseUrl: "https://my-service.workers.dev",
+  description: "Service with interactive components",
+  signatureAlgorithm: "ed25519",
+  publicKey: "YOUR_PUBLIC_KEY",
+  commands: [],
+  messageComponentIds: ["confirm_button", "cancel_button", "role_select"], // ここに登録
+});
+```
+
 #### 3. Modal Submits
+
+モーダル送信のインタラクションも、`custom_id`でルーティングされます。
+
 ```ts
-// custom_id: "feedback_modal" の場合
-1. modal_submits配列に "feedback_modal" を含むマニフェストを検索
+// モーダル送信: custom_id = "feedback_modal"
+
+1. modal_submit_ids配列に該当のcustom_idを含むマニフェストを検索
 2. マッチしたサービスにリクエストを転送
+```
+
+**例**: モーダルハンドラーの実装
+
+```typescript
+// Service Worker側
+const manifest = createManifest({
+  id: "my-service",
+  name: "My Service",
+  baseUrl: "https://my-service.workers.dev",
+  description: "Service with modals",
+  signatureAlgorithm: "ed25519",
+  publicKey: "YOUR_PUBLIC_KEY",
+  commands: [],
+  modalSubmitIds: ["feedback_modal", "settings_modal"], // ここに登録
+});
 ```
 
 ### リクエスト転送
 
 マニフェストが見つかると、Nexusは以下の処理を行います:
 
-1. **リクエストの署名**: HMAC-SHA256でリクエストに署名
+1. **リクエストの署名**: Ed25519公開鍵暗号でリクエストに署名
 2. **ヘッダーの追加**:
-   - `X-Hiyocord-Signature`: 署名
-   - `X-Hiyocord-Timestamp`: タイムスタンプ
+   - `X-Hiyocord-Signature`: Ed25519署名
+   - `X-Hiyocord-Timestamp`: タイムスタンプ（リプレイ攻撃防止）
+   - `X-Hiyocord-Algorithm`: 署名アルゴリズム（例: "ed25519"）
 3. **転送**: サービスワーカーの `/interactions` エンドポイントに転送
+
+詳細は[認証システムドキュメント](./authentication.ja.md)を参照してください。
 
 ## セキュリティ
 

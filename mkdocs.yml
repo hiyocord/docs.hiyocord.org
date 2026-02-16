@@ -90,8 +90,6 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/hiyocord
-
-google_analytics:
-  - G-R741YMMF6F
-  - auto
-
+  analytics:
+    provider: google
+    property: G-R741YMMF6F

@@ -65,7 +65,7 @@ npm run openapi
 
 ## パッケージ情報
 
-- バージョン: v1.0.2
+- バージョン: v1.0.3
 - 依存: `openapi-fetch@^0.15.0`
 - レジストリ: GitHub Packages
 - 生成ファイル: `github-api-spec.gen.ts` (5.7 MB)

@@ -100,10 +100,25 @@ wrangler secret put DISCORD_PUBLIC_KEY
 
 wrangler secret put DISCORD_CLIENT_SECRET
 # Client Secretを入力（OAuth2ページから取得）
-
-wrangler secret put HIYOCORD_SECRET
-# 任意のランダムな文字列を生成して入力（例: openssl rand -hex 32）
 ```
+
+NexusとService Worker間の認証にはEd25519鍵ペアを使用します。Nexus自身の鍵ペアを生成して設定してください:
+
+```bash
+npx tsx generate-keypair.ts
+```
+
+出力された公開鍵・秘密鍵を、それぞれ以下のシークレットとして設定します:
+
+```bash
+wrangler secret put NEXUS_PRIVATE_KEY
+# 生成した秘密鍵を入力
+
+wrangler secret put NEXUS_PUBLIC_KEY
+# 生成した公開鍵を入力
+```
+
+`NEXUS_SIGNATURE_ALGORITHM`は省略可能で、デフォルトは`ed25519`です。認証の仕組みの詳細は[認証システム](../nexus/authentication.ja.md)を参照してください。
 
 `wrangler.toml`を編集して、Application IDとKVネームスペースIDを設定:
 
@@ -165,10 +180,22 @@ npm install
 
 ### 4.4 環境変数の設定
 
+Service Worker側もEd25519鍵ペアを生成し、Nexusの公開鍵とあわせて設定します:
+
 ```bash
-wrangler secret put HIYOCORD_SECRET
-# Nexusで設定したものと同じシークレットを入力
+# NexusのURLから公開鍵を取得
+curl https://hiyocord-nexus.your-subdomain.workers.dev/.well-known/nexus-public-key \
+  | jq -jr ".public_key" | wrangler secret put NEXUS_PUBLIC_KEY
+
+# Service Worker自身の鍵ペアを生成
+npx gen-key --format=json > keys.json
+
+jq -jr ".public_key" keys.json | wrangler secret put HIYOCORD_PUBLIC_KEY
+jq -jr ".private_key" keys.json | wrangler secret put HIYOCORD_PRIVATE_KEY
+jq -jr ".algorithm" keys.json | wrangler secret put HIYOCORD_KEY_ALGORITHM
 ```
+
+`gen-key`は[`@hiyocord/hiyocord-nexus-cli`](https://github.com/hiyocord/hiyocord-nexus)が提供するコマンドです（`hiyocord-service-workers`テンプレートに依存として含まれています）。生成した公開鍵（`HIYOCORD_PUBLIC_KEY`）は、後述のマニフェスト登録時にNexusへ送信されます。
 
 ### 4.5 Worker名の変更
 
@@ -255,56 +282,28 @@ npm run deploy
 
 デプロイが完了すると、Workerのエンドポイントが表示されます（例: `https://my-discord-bot.your-subdomain.workers.dev`）。
 
-## ステップ5: マニフェストの登録
+## ステップ5: マニフェストの登録 {: #step5-manifest }
 
-### 5.1 登録スクリプトの作成
+マニフェストの登録には、独自のスクリプトを書く必要はありません。`hiyocord-service-workers`テンプレートに含まれる[`@hiyocord/hiyocord-nexus-cli`](https://github.com/hiyocord/hiyocord-nexus)の`manifest`コマンドを使います。このコマンドはビルド済みの`src/manifest.ts`（`HiyocordExport`）を読み込み、Nexusのマニフェストスキーマに変換して`POST /api/manifests`に送信します。
 
-`scripts/register-manifest.ts`を作成:
-
-```ts
-const NEXUS_URL = "https://hiyocord-nexus.your-subdomain.workers.dev";
-const WORKER_URL = "https://my-discord-bot.your-subdomain.workers.dev";
-
-const manifest = {
-  version: "1.0.0",
-  id: "my-discord-bot",
-  name: "My Discord Bot",
-  base_url: WORKER_URL,
-  application_commands: {
-    global: [
-      {
-        name: "ping",
-        description: "Responds with pong",
-        type: 1
-      }
-    ]
-  }
-};
-
-const response = await fetch(`${NEXUS_URL}/manifest`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(manifest)
-});
-
-if (!response.ok) {
-  console.error("Failed to register manifest:", await response.text());
-  process.exit(1);
-}
-
-const result = await response.json();
-console.log("Manifest registered successfully:", result);
-```
-
-### 5.2 マニフェストの登録
+### 5.1 マニフェストの登録
 
 ```bash
-npx tsx scripts/register-manifest.ts
+npm run build
+
+npx manifest \
+  --entryPoint=./dist/index.js \
+  --nexusUrl=https://hiyocord-nexus.your-subdomain.workers.dev \
+  --baseUrl=https://my-discord-bot.your-subdomain.workers.dev \
+  --signatureAlgorithm=$(jq -jr ".algorithm" keys.json) \
+  --publicKey=$(jq -jr ".public_key" keys.json)
 ```
 
-成功すると、Nexusがコマンドを自動的にDiscord APIに登録します。
+`--dryrun`を付けると、実際に送信せず変換結果だけを確認できます。
+
+### 5.2 マニフェストの承認
+
+登録されたマニフェストは、初期状態では`pending`（承認待ち）です。Nexusの管理画面（[hiyocord-nexus-web](../nexus/index.ja.md#nexus-web)）にDiscordアカウントでログインし、対象のマニフェストを`approved`に承認すると、コマンドが実際にDiscord APIへ登録されます。マニフェストの権限（`permissions`）を変更して再登録した場合も、再度`pending`に戻るため承認が必要です。詳細は[マニフェスト承認ワークフロー](../nexus/index.ja.md#manifest-approval-workflow)を参照してください。
 
 ## ステップ6: テスト
 
@@ -447,6 +446,7 @@ export default {
 
 #### コマンドが表示されない
 
+- マニフェストが`pending`のまま承認されていない可能性があります。Nexusの管理画面でマニフェストを`approved`にしてください
 - マニフェストが正しく登録されているかNexusのログを確認
 - Discord側でコマンドの同期に数分かかることがあります
 - Botがサーバーに参加しているか確認
@@ -454,13 +454,15 @@ export default {
 #### "Interaction failed"エラー
 
 - Service WorkerがNexusからのリクエストに応答していない可能性があります
-- `HIYOCORD_SECRET`が一致しているか確認
+- Service Worker側の`NEXUS_PUBLIC_KEY`シークレットが、Nexusの`/.well-known/nexus-public-key`の値と一致しているか確認
 - Cloudflare Workersのログを確認: `wrangler tail`
 
 #### 署名検証エラー
 
-- NexusとService Workerの`HIYOCORD_SECRET`が一致しているか確認
+- Nexus→Service Workerの検証には`NEXUS_PUBLIC_KEY`（Service Worker側）と`NEXUS_PRIVATE_KEY`（Nexus側）の鍵ペアが一致している必要があります
+- Service Worker→Nexusの検証（Discord API Proxy呼び出し時）には、マニフェスト登録時に送った`HIYOCORD_PUBLIC_KEY`と、Service Worker側の`HIYOCORD_PRIVATE_KEY`が一致している必要があります
 - Discord Developer Portalの「PUBLIC KEY」が正しく設定されているか確認
+- 詳細は[認証システム](../nexus/authentication.ja.md)のトラブルシューティングを参照
 
 ### ヘルプとサポート
 

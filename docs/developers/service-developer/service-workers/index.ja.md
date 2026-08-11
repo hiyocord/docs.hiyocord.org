@@ -28,8 +28,14 @@ Discord → Nexus → Service Worker
 
 ```ts
 import { Hono } from "hono";
+import { nexusVerifyMiddleware } from "@hiyocord/hiyocord-nexus-core";
+import { fetchHandler } from "@hiyocord/discord-interaction-client";
+import { resolver } from "./register";
 
-const app = new Hono<{Bindings: {HIYOCORD_SECRET: string}}>();
+const app = new Hono();
+
+app.use("/interactions", nexusVerifyMiddleware);
+app.mount("/interactions", fetchHandler(resolver).fetch);
 ```
 
 ### 3. レジストリパターン
@@ -53,13 +59,14 @@ hiyocord-service-workers/
 │       ├── src/
 │       │   ├── index.ts          # アプリケーションエントリポイント
 │       │   ├── register.ts       # ハンドラーレジストリ
-│       │   ├── test.ts           # サンプルコマンド
-│       │   └── nexus-register.ts # (プレースホルダー)
+│       │   ├── manifest.ts       # マニフェスト定義（HiyocordExport）
+│       │   ├── test.ts           # サンプルコマンド（グローバル）
+│       │   └── test-guild.ts     # サンプルコマンド（ギルド限定）
 │       ├── vite.config.ts        # Viteビルド設定
 │       ├── wrangler.config.ts    # Wrangler設定
 │       └── package.json
 ├── .github/workflows/
-│   └── ci.yaml                   # CI/CDパイプライン
+│   └── ci.yaml                   # CI/CDパイプライン（build → deploy → 鍵設定 → manifest登録）
 └── package.json                  # ワークスペース設定
 ```
 
@@ -84,12 +91,21 @@ npm install
 
 ### 4. 環境変数の設定
 
-Wranglerシークレットを設定します:
+NexusとService Worker間の認証にはEd25519鍵ペアを使用します。
 
 ```bash
-wrangler secret put HIYOCORD_SECRET
-# Nexusと同じシークレットを入力
+# Nexusの公開鍵を取得して設定
+curl https://your-nexus.workers.dev/.well-known/nexus-public-key \
+  | jq -jr ".public_key" | wrangler secret put NEXUS_PUBLIC_KEY
+
+# 自身の鍵ペアを生成
+npx gen-key --format=json > keys.json
+jq -jr ".public_key" keys.json | wrangler secret put HIYOCORD_PUBLIC_KEY
+jq -jr ".private_key" keys.json | wrangler secret put HIYOCORD_PRIVATE_KEY
+jq -jr ".algorithm" keys.json | wrangler secret put HIYOCORD_KEY_ALGORITHM
 ```
+
+`gen-key`は`@hiyocord/hiyocord-nexus-cli`が提供するコマンドで、テンプレートに依存として含まれています。鍵の設定方法の詳細は[Nexus 認証システム](../nexus/authentication.ja.md)を参照してください。
 
 ### 5. ビルドとデプロイ
 
@@ -526,7 +542,9 @@ export default {
 ```ts
 // src/index.ts で型を定義
 type Bindings = {
-  HIYOCORD_SECRET: string;
+  NEXUS_PUBLIC_KEY: string;
+  HIYOCORD_PRIVATE_KEY: string;
+  HIYOCORD_KEY_ALGORITHM: string;
   MY_KV: KVNamespace;
 };
 
@@ -631,66 +649,49 @@ export default {
 
 ## Nexusへのマニフェスト登録
 
-Service Workerをデプロイした後、Nexusにマニフェストを登録する必要があります。
+Service Workerをデプロイした後、Nexusにマニフェストを登録する必要があります。マニフェストは`src/manifest.ts`で`HiyocordExport`として定義し、[hiyocord-nexus-cli](../nexus/index.ja.md#nexus-cli)の`manifest`コマンドで登録します。
 
-### マニフェスト作成
+### マニフェスト定義
 
 ```ts
-// scripts/register-manifest.ts
-const manifest = {
-  version: "1.0.0",
-  id: "my-bot-service",
-  name: "My Bot Service",
-  base_url: "https://my-bot.workers.dev",
-  application_commands: {
-    global: [
-      {
-        name: "hello",
-        description: "Says hello",
-        type: 1
-      },
-      {
-        name: "greet",
-        description: "Greets a user",
-        type: 1,
-        options: [
-          {
-            name: "user",
-            description: "User to greet",
-            type: 6,
-            required: true
-          }
-        ]
-      }
-    ]
-  },
-  message_components: [
-    "confirm_yes",
-    "confirm_no",
-    "favorite_select"
-  ],
-  modal_submits: [
-    "feedback_modal"
-  ]
-};
+// src/manifest.ts
+import type { HiyocordExport } from "@hiyocord/hiyocord-nexus-cli";
+import { registry } from "./register";
 
-// Nexusに送信
-const response = await fetch("https://nexus.hiyocord.org/manifest", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
+export default {
+  registry,
+  service: {
+    baseUrl: "https://my-bot.workers.dev",
+    id: "my-bot-service",
+    name: "My Bot Service",
+    description: "My Discord bot service",
+    permissions: [{ type: "DISCORD_BOT" }],
+    messageComponentIds: ["confirm_yes", "confirm_no", "favorite_select"],
+    modalSubmitIds: ["feedback_modal"]
   },
-  body: JSON.stringify(manifest)
-});
-
-console.log(await response.json());
+  signing: {
+    algorithm: "ed25519",
+    publicKey: "YOUR_HIYOCORD_PUBLIC_KEY"
+  }
+} satisfies HiyocordExport;
 ```
 
-### 実行
+`registry`から自動的にアプリケーションコマンドが抽出されます。`messageComponentIds`/`modalSubmitIds`はハンドラー登録済みのボタン・セレクトメニュー・モーダルの`custom_id`を列挙してください（Nexus側のマニフェストAPIでは`message_component_ids`/`modal_submit_ids`というsnake_caseのフィールド名に変換されます。詳細は[Nexusのマニフェストスキーマ](../nexus/index.ja.md#manifest-schema)を参照）。
+
+### 登録の実行
 
 ```bash
-npx tsx scripts/register-manifest.ts
+npm run build
+
+npx manifest \
+  --entryPoint=./dist/index.js \
+  --nexusUrl=https://nexus.hiyocord.org \
+  --baseUrl=https://my-bot.workers.dev \
+  --signatureAlgorithm=ed25519 \
+  --publicKey=YOUR_HIYOCORD_PUBLIC_KEY
 ```
+
+登録直後のマニフェストは`pending`ステータスです。Nexusの管理画面（hiyocord-nexus-web）で承認するまで、コマンドはDiscordに反映されません。詳細は[マニフェスト承認ワークフロー](../nexus/index.ja.md#manifest-approval-workflow)を参照してください。
 
 ## デプロイメント
 
@@ -823,6 +824,7 @@ const deferred = createBuilder(interaction)
 
 ### コマンドが表示されない
 
+- マニフェストが`pending`のまま承認されていない可能性があります。Nexusの管理画面で承認してください
 - Nexusにマニフェストが正しく登録されているか確認
 - Discord Developer Portalでbotのスコープに`applications.commands`が含まれているか確認
 
@@ -833,8 +835,9 @@ const deferred = createBuilder(interaction)
 
 ### 署名検証エラー
 
-- `HIYOCORD_SECRET`がNexusと一致しているか確認
-- `nexusVerifyMiddleware`が正しく適用されているか確認
+- Service Worker側の`NEXUS_PUBLIC_KEY`がNexusの`NEXUS_PUBLIC_KEY`（公開鍵）と一致しているか確認
+- `nexusVerifyMiddleware`が`/interactions`に正しく適用されているか確認
+- 詳細は[Nexus 認証システム](../nexus/authentication.ja.md)のトラブルシューティングを参照
 
 ### デプロイエラー
 

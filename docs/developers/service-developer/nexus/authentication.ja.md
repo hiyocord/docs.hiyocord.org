@@ -122,7 +122,7 @@ app.all("/proxy/discord/api/v10/*", verifyServiceWorker, async (c) => {
 ```bash
 # リポジトリに含まれるスクリプトを使用
 cd hiyocord-nexus
-npx tsx scripts/generate-keypair.ts
+npx tsx generate-keypair.ts
 ```
 
 出力例:
@@ -139,10 +139,10 @@ Ax9876543210zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA==
 
 #### Service Worker鍵ペアの生成
 
-Service Worker側でも同じスクリプトを使用できます:
+Service Worker側は、[`@hiyocord/hiyocord-nexus-cli`](https://github.com/hiyocord/hiyocord-nexus)（`hiyocord-service-workers`テンプレートに依存として含まれる）の`gen-key`コマンドを使用します:
 
 ```bash
-npx tsx scripts/generate-keypair.ts
+npx gen-key --format=json
 ```
 
 ### 環境変数の設定
@@ -172,11 +172,16 @@ NEXUS_SIGNATURE_ALGORITHM = "ed25519"  # optional
 #### Service Worker側
 
 ```bash
-# Service Workerの秘密鍵を設定
-wrangler secret put SERVICE_WORKER_PRIVATE_KEY
+# Nexusからの署名済みリクエストを検証するための公開鍵
+wrangler secret put NEXUS_PUBLIC_KEY
+# /.well-known/nexus-public-keyエンドポイントから取得した値を入力
 
-# Service Workerの公開鍵はマニフェストに含める
-# Nexusの公開鍵は/.well-known/nexus-public-keyエンドポイントから取得
+# Nexus（Discord API Proxyなど）へのリクエストに署名するための秘密鍵とアルゴリズム
+wrangler secret put HIYOCORD_PRIVATE_KEY
+wrangler secret put HIYOCORD_KEY_ALGORITHM
+
+# Service Workerの公開鍵（HIYOCORD_PUBLIC_KEY）はシークレットとしては不要で、
+# マニフェスト登録時にNexusへ送信し、Nexus側のKVに保存されます
 ```
 
 ### Nexus公開鍵の取得
@@ -292,21 +297,18 @@ console.log("Request time:", timestamp);
 
 **解決方法**:
 
-マニフェストを再作成して登録:
+`signing.algorithm`と`signing.publicKey`を`src/manifest.ts`の`HiyocordExport`に設定した上で、`manifest`コマンドで再登録してください:
 
-```typescript
-const manifest = createManifest({
-  // ... 他のフィールド
-  signatureAlgorithm: "ed25519",
-  publicKey: "YOUR_PUBLIC_KEY_HERE",
-});
-
-await fetch("https://nexus.hiyocord.org/manifest", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(manifest),
-});
+```bash
+npx manifest \
+  --entryPoint=./dist/index.js \
+  --nexusUrl=https://your-nexus.workers.dev \
+  --baseUrl=https://your-service.workers.dev \
+  --signatureAlgorithm=ed25519 \
+  --publicKey=YOUR_PUBLIC_KEY_HERE
 ```
+
+内部的には`POST /api/manifests`にリクエストが送信されます。
 
 #### 環境変数エラー
 

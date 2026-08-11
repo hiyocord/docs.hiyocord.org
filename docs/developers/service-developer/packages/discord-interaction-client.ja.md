@@ -326,6 +326,6 @@ const handler: ApplicationCommandHandler = {
 
 ## パッケージ情報
 
-- バージョン: v0.0.6
+- バージョン: v0.6.0
 - 依存: `discord-api-types@^0.38.37`
 - レジストリ: GitHub Packages

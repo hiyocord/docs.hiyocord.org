@@ -1,5 +1,5 @@
 site_name: Hiyocord Documentation
-site_url: https://docs.hiyocord.com
+site_url: https://docs.hiyocord.org
 site_description: Discord bot開発基盤 - Cloudflare Workers上で動作する分散マイクロサービス群
 site_author: Hiyocord Team
 repo_url: https://github.com/hiyocord/docs.hiyocord.org
@@ -8,12 +8,13 @@ edit_uri: edit/master/docs/
 nav:
   - ホーム: index.ja.md
   - Getting Started: getting-started/index.ja.md
-  - Hiyocord Nexus: nexus/index.ja.md
+  - Hiyocord Nexus:
+    - 概要: nexus/index.ja.md
+    - 認証システム: nexus/authentication.ja.md
   - Hiyocord Packages:
     - 概要: packages/index.ja.md
     - '@hiyocord/tsconfig': packages/tsconfig.ja.md
     - '@hiyocord/wrangler-configurer': packages/wrangler-configurer.ja.md
-    - '@hiyocord/rest-api-core': packages/rest-api-core.ja.md
     - '@hiyocord/discord-rest-api': packages/discord-rest-api.ja.md
     - '@hiyocord/github-rest-api': packages/github-rest-api.ja.md
     - '@hiyocord/discord-interaction-client': packages/discord-interaction-client.ja.md

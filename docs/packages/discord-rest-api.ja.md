@@ -69,7 +69,7 @@ npm run openapi
 
 ## パッケージ情報
 
-- バージョン: v2.0.2
+- バージョン: v2.2.1
 - 依存: `openapi-fetch@^0.15.0`
 - レジストリ: GitHub Packages
 - 生成ファイル: `discord-api-spec.gen.ts` (575 KB)

@@ -20,32 +20,39 @@ Discord API
 
 ### 主要コンポーネント
 
-Nexusは3つのパッケージで構成されています:
+Nexusは5つのパッケージで構成されるモノレポです:
 
 #### 1. hiyocord-nexus
 メインのCloudflare Workerアプリケーションです。
 
-**エンドポイント:**
+**主なエンドポイント:**
 
 - `POST /interactions` - Discord interactionの受付とルーティング
-- `POST /manifest` - サービスマニフェストの登録
+- `GET /.well-known/nexus-public-key` - Nexusの公開鍵を配布
+- `ALL /proxy/discord/api/v10/*` - Service Worker向けDiscord APIプロキシ
+- `GET/POST/DELETE /api/manifests[...]` - マニフェストのCRUD
+- `POST /api/manifests/:id/approve` / `POST /api/manifests/:id/reject` - マニフェストの承認・却下
+- `GET /api/auth/discord/authorize` / `POST /api/auth/discord` / `GET /api/auth/me` / `POST /api/auth/logout` - 管理画面用のDiscord OAuth2認証
+
+完全な仕様は[openapi.yaml](https://github.com/hiyocord/hiyocord-nexus/blob/master/openapi.yaml)を参照してください。
 
 **主な機能:**
 
 - Discord署名検証
 - Interactionルーティング
-- マニフェスト管理
+- マニフェスト管理・承認ワークフロー
 - コマンド自動登録
+- Discord APIプロキシ（権限スコープ制御）
 
 #### 2. hiyocord-nexus-core
-再利用可能なコアライブラリです。
+再利用可能なコアライブラリです。NexusとService Workerの両方から利用されます。
 
 **提供機能:**
 
-- リクエスト署名（HMAC-SHA256）
-- 署名検証ミドルウェア
-- Discord APIクライアントミドルウェア
-- 認証タイプ定義
+- Ed25519によるリクエスト署名・検証（`ecdsa-p256`, `rsa-pss-2048`はアルゴリズムとして定義済みですが未実装で、内部的にはEd25519にフォールバックします）
+- Nexus→Service Worker検証ミドルウェア（`nexusVerifyMiddleware`）
+- Service Worker→Nexus用のDiscord APIプロキシ・Nexus APIクライアント
+- マニフェスト生成（`createManifest`）
 
 #### 3. hiyocord-nexus-types
 型定義とスキーマを提供します。
@@ -53,11 +60,17 @@ Nexusは3つのパッケージで構成されています:
 **含まれる型:**
 
 - Manifestスキーマ（v1.0.0）
-- DiscordCommandビルダー
-- OpenAPI生成型
+- Permission型（`DISCORD_BOT` / `DISCORD_API_SCOPE`）
+- OpenAPI生成型（Nexus API）
 
-#### 4. hiyocord-nexus-web
-Nexus管理用のWeb UIを提供する予定のパッケージです（開発中）。
+#### 4. hiyocord-nexus-cli {: #nexus-cli }
+`gen-key`と`manifest`の2つのCLIコマンドを提供するパッケージです。`hiyocord-service-workers`テンプレートや`hiyocord-nexus`自身のデプロイパイプラインから利用されます。
+
+- `gen-key` - Ed25519鍵ペアを生成
+- `manifest` - ビルド済みの`HiyocordExport`を読み込み、Nexusのマニフェストスキーマに変換して`POST /api/manifests`に登録
+
+#### 5. hiyocord-nexus-web {: #nexus-web }
+Nexusの管理用Web UI（React + react-router-dom、Cloudflare Pagesとして稼働中）です。Discordアカウントでログインし、登録されたマニフェストの一覧・詳細確認・承認/却下を行えます。ルートは`Home`（ダッシュボード）、`Login`、`Callback`（OAuth2コールバック）、`Manifests`（一覧）、`ManifestDetail`（詳細・承認操作）です。
 
 ## マニフェストシステム
 
@@ -65,7 +78,7 @@ Nexus管理用のWeb UIを提供する予定のパッケージです（開発中
 
 マニフェストは、サービスワーカーが処理できるDiscord interactionを定義するJSON形式の設定ファイルです。
 
-### マニフェストスキーマ v1.0.0
+### マニフェストスキーマ v1.0.0 {: #manifest-schema }
 
 ```ts
 interface Manifest {
@@ -90,35 +103,24 @@ interface Manifest {
 
 - `message_component_ids`: ボタンやセレクトメニューなどのメッセージコンポーネントのcustom_idを配列で指定
 - `modal_submit_ids`: モーダル送信のcustom_idを配列で指定
-- `signature_algorithm`: Service Workerの署名アルゴリズム（現在は "ed25519" のみサポート）
+- `signature_algorithm`: Service Workerの署名アルゴリズム（実装済みは "ed25519" のみ）
 - `public_key`: Service WorkerがNexusへリクエストする際の署名検証用公開鍵
+- `permissions`: Service Workerに許可するDiscord APIアクセス範囲（後述の[Discord APIプロキシと権限スコープ](#discord-api-proxy)を参照）
 
-### マニフェスト登録の例
+### マニフェストの登録
 
-```ts
-const manifest = {
-  version: "1.0.0",
-  id: "my-bot-service",
-  name: "My Bot Service",
-  base_url: "https://my-worker.workers.dev",
-  application_commands: {
-    global: [
-      {
-        name: "ping",
-        description: "Responds with pong",
-        type: 1
-      }
-    ]
-  }
-};
+マニフェストは通常、生のJSONを直接POSTするのではなく、[hiyocord-nexus-cli](#nexus-cli)の`manifest`コマンドで登録します。Service Worker側の`src/manifest.ts`で`HiyocordExport`を定義し、ビルド後に以下を実行します:
 
-// マニフェストを登録
-await fetch("https://nexus.hiyocord.org/manifest", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(manifest)
-});
+```bash
+npx manifest \
+  --entryPoint=./dist/index.js \
+  --nexusUrl=https://nexus.hiyocord.org \
+  --baseUrl=https://my-worker.workers.dev \
+  --signatureAlgorithm=ed25519 \
+  --publicKey=YOUR_SERVICE_PUBLIC_KEY
 ```
+
+内部的には、`registry`（登録済みハンドラー）と`service`メタデータから[Manifestスキーマ](#manifest-schema)を組み立て、`POST /api/manifests`にリクエストします。詳細は[Getting Started ステップ5](../getting-started/index.ja.md#step5-manifest)を参照してください。
 
 ## ルーティングメカニズム
 
@@ -224,30 +226,63 @@ const isValid = verifyKey(
 
 ### Hiyocord署名システム
 
-サービスワーカーへのリクエストには独自の署名を付与します:
+Nexus⇄Service Worker間のリクエストには、Ed25519公開鍵暗号による署名を付与します（HMACではありません）。ヘッダーの正規化（アルファベット順ソート、`CF-*`ヘッダーの除外）とタイムスタンプによるリプレイ攻撃防止（60秒以内）を組み合わせています。詳細な仕組み・鍵の設定方法は[認証システム](./authentication.ja.md)を参照してください。
 
-**署名生成:**
+## マニフェスト承認ワークフロー {: #manifest-approval-workflow }
 
-1. ヘッダーの正規化（アルファベット順、CF-*ヘッダーを除外）
-2. リクエストボディとヘッダーを結合
-3. HMAC-SHA256で署名
-4. Hex形式で出力
+Nexusに登録されたマニフェストは、Discordへのコマンド登録やinteractionの転送が行われる前に、管理者による承認を必要とします。
 
-**署名検証:**
+### ステータス
 
-- タイムスタンプチェック（1分以内）
-- 署名の暗号学的検証
+マニフェストは`pending`（承認待ち）・`approved`（承認済み）・`rejected`（却下）のいずれかのステータスを持ちます。
+
+- 新規登録時、マニフェストは常に`pending`から始まります
+- `approved`になったマニフェストのみ、interactionの転送先として選択され、Discordのアプリケーションコマンドとして同期されます
+- `pending`/`rejected`のマニフェストへのinteractionはルーティングされません
+
+### 承認・却下
+
+管理者は[hiyocord-nexus-web](#nexus-web)にDiscordアカウントでログインし（`LOGIN_ALLOW_USER`で許可されたユーザーのみ）、`POST /api/manifests/:id/approve`または`POST /api/manifests/:id/reject`でマニフェストを承認・却下します。
+
+### 権限変更時の再承認
+
+すでに`approved`のマニフェストが再登録され、`permissions`フィールドの内容が変更されていた場合、Nexusは自動的にそのマニフェストを`pending`に差し戻します。これにより、Service Worker側のコード変更だけでDiscord APIへのアクセス範囲が無断で拡大することを防いでいます。
+
+## Discord APIプロキシと権限スコープ {: #discord-api-proxy }
+
+Service Workerは、Discord Bot Tokenを直接保持しません。Discord REST APIを呼び出す必要がある場合は、Nexusが提供する`ALL /proxy/discord/api/v10/*`エンドポイントを経由します。
+
+### 呼び出しの流れ
+
+1. Service Workerが`X-Hiyocord-Manifest-Id`ヘッダーと署名ヘッダーを付けてNexusにリクエスト
+2. Nexusの`verifyServiceWorker`ミドルウェアが、マニフェストに登録された公開鍵でリクエストを検証
+3. マニフェストの`permissions`をもとにアクセス可否を判定
+4. 許可されていれば、Nexusが保持するDiscord Bot Tokenを使って実際のDiscord APIを呼び出し、結果を返す
+
+### 権限（Permission）の種類
+
+マニフェストの`permissions`フィールドには、次のいずれかを指定します:
 
 ```ts
-import { sign } from "@hiyocord/hiyocord-nexus-core";
-
-const { headers, signature } = await sign({
-  method: "POST",
-  path: "/interactions",
-  body: jsonBody,
-  headers: originalHeaders
-}, secret);
+type Permission =
+  | { type: "DISCORD_BOT" }                              // Discord APIへのフルアクセス
+  | { type: "DISCORD_API_SCOPE"; scopes: Record<string, string[]> }; // パス＋メソッド単位の許可リスト
 ```
+
+`DISCORD_API_SCOPE`の例:
+
+```json
+{
+  "type": "DISCORD_API_SCOPE",
+  "scopes": {
+    "/channels/:channel_id/messages": ["POST"],
+    "/channels/:channel_id/messages/:message_id": ["GET", "PATCH", "DELETE"],
+    "/guilds/:guild_id/members/:user_id": ["GET"]
+  }
+}
+```
+
+必要最小限のスコープのみを要求することを推奨します。`DISCORD_BOT`はフルアクセスとなるため、権限変更時の再承認（[マニフェスト承認ワークフロー](#manifest-approval-workflow)）の対象にもなりやすい点に注意してください。
 
 ## 環境変数
 
@@ -255,12 +290,16 @@ Nexusには以下の環境変数（Cloudflare Bindings）が必要です:
 
 | 変数名 | 説明 |
 |--------|------|
-| `KV` | Cloudflare KVネームスペース（マニフェスト保存用） |
+| `KV` | Cloudflare KVネームスペース（マニフェスト・承認状態の保存用） |
 | `DISCORD_APPLICATION_ID` | Discord BotのApplication ID |
 | `DISCORD_BOT_TOKEN` | Discord Bot Token |
-| `DISCORD_CLIENT_SECRET` | Discord OAuth Client Secret |
-| `DISCORD_PUBLIC_KEY` | Discord Public Key（署名検証用） |
-| `HIYOCORD_SECRET` | サービス間認証用の共有シークレット |
+| `DISCORD_CLIENT_SECRET` | Discord OAuth Client Secret（管理画面ログイン・Discord APIプロキシ用） |
+| `DISCORD_PUBLIC_KEY` | Discord Public Key（Discordからのinteraction署名検証用） |
+| `NEXUS_PRIVATE_KEY` | Service Workerへの署名付きリクエスト送信用のEd25519秘密鍵 |
+| `NEXUS_PUBLIC_KEY` | Service Worker配布用のEd25519公開鍵 |
+| `NEXUS_SIGNATURE_ALGORITHM` | 署名アルゴリズム（省略可、デフォルト`ed25519`） |
+| `JWT_SECRET` | 管理画面セッション用JWTの署名シークレット |
+| `LOGIN_ALLOW_USER` | 管理画面へのログインを許可するDiscordユーザーIDのカンマ区切りリスト |
 
 ## デプロイ
 
@@ -282,8 +321,13 @@ DISCORD_APPLICATION_ID = "your-app-id"
 wrangler secret put DISCORD_BOT_TOKEN
 wrangler secret put DISCORD_PUBLIC_KEY
 wrangler secret put DISCORD_CLIENT_SECRET
-wrangler secret put HIYOCORD_SECRET
+wrangler secret put NEXUS_PRIVATE_KEY
+wrangler secret put NEXUS_PUBLIC_KEY
+wrangler secret put JWT_SECRET
+wrangler secret put LOGIN_ALLOW_USER
 ```
+
+`NEXUS_PRIVATE_KEY`/`NEXUS_PUBLIC_KEY`は`npx tsx generate-keypair.ts`で生成できます。詳細は[認証システム](./authentication.ja.md)を参照してください。
 
 2. **KVネームスペースの作成**:
 ```bash
@@ -339,9 +383,9 @@ Discord interactionを処理します。
 }
 ```
 
-### POST /manifest
+### POST /api/manifests
 
-サービスマニフェストを登録します。
+サービスマニフェストを登録します（通常は[hiyocord-nexus-cli](#nexus-cli)の`manifest`コマンド経由で呼び出されます）。登録直後のマニフェストは`pending`ステータスになり、[承認](#manifest-approval-workflow)されるまでDiscordコマンドの同期やinteractionの転送は行われません。
 
 **リクエスト:**
 
@@ -351,6 +395,9 @@ Discord interactionを処理します。
   "id": "service-id",
   "name": "Service Name",
   "base_url": "https://service.workers.dev",
+  "description": "Service description",
+  "signature_algorithm": "ed25519",
+  "public_key": "BASE64_PUBLIC_KEY",
   "application_commands": {
     "global": [
       {
@@ -358,16 +405,25 @@ Discord interactionを処理します。
         "description": "Command description"
       }
     ]
-  }
+  },
+  "message_component_ids": [],
+  "modal_submit_ids": [],
+  "permissions": [{ "type": "DISCORD_BOT" }]
 }
 ```
 
-**レスポンス:**
+### POST /api/manifests/:id/approve・/reject
+
+管理画面（hiyocord-nexus-web）から呼び出される、マニフェストの承認・却下エンドポイントです。承認されると、マニフェストのコマンドが実際にDiscord APIへ同期されます。
+
+### GET /.well-known/nexus-public-key
+
+Service WorkerがNexusの公開鍵を取得するためのエンドポイントです。
 
 ```json
 {
-  "success": true,
-  "registered_commands": 1
+  "algorithm": "ed25519",
+  "public_key": "BASE64_PUBLIC_KEY"
 }
 ```
 
@@ -385,16 +441,22 @@ Discord interactionを処理します。
 - グローバル/ギルドコマンドの区別を確認
 - Cloudflare Workersのログを確認
 
+### マニフェストを登録したのにコマンドが反映されない
+
+- マニフェストが`pending`のまま承認されていない可能性があります。[承認ワークフロー](#manifest-approval-workflow)を確認し、hiyocord-nexus-webで承認してください
+
 ### 署名検証エラー
 
-- `HIYOCORD_SECRET`がNexusとService Workerで一致しているか確認
-- タイムスタンプが1分以内であることを確認
+- Nexus→Service Workerの場合は`NEXUS_PRIVATE_KEY`（Nexus側）と`NEXUS_PUBLIC_KEY`（Service Worker側）が一致しているか確認
+- Service Worker→Nexusの場合はマニフェストに登録した公開鍵と`HIYOCORD_PRIVATE_KEY`（Service Worker側）が一致しているか確認
+- タイムスタンプが60秒以内であることを確認
 - ヘッダーの正規化処理を確認
+- 詳細は[認証システム](./authentication.ja.md)のトラブルシューティングを参照
 
 ## パッケージバージョン
 
-- hiyocord-nexus: v0.0.2
-- hiyocord-nexus-core: v0.0.2
-- hiyocord-nexus-types: v0.0.2
+- hiyocord-nexus-core: v0.8.4
+- hiyocord-nexus-types: v0.5.3
+- hiyocord-nexus-cli: v0.2.3
 
-最新バージョンは[GitHub Releases](https://github.com/hiyocord/hiyocord-nexus/releases)で確認できます。
+`hiyocord-nexus`本体（Workerアプリケーション）とWeb UIはprivateパッケージのため個別のバージョン番号はありません。最新バージョンは[GitHub Releases](https://github.com/hiyocord/hiyocord-nexus/releases)で確認できます。

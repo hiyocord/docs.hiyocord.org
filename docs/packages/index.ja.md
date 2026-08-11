@@ -12,10 +12,6 @@ TypeScript設定ファイルの共有パッケージです。モノレポ全体�
 
 Wrangler設定ファイルを生成するためのコマンドラインユーティリティです。環境固有の設定をバージョン管理から分離します。
 
-### [@hiyocord/rest-api-core](rest-api-core.ja.md)
-
-OpenAPI仕様ベースのREST APIクライアント基盤パッケージです。型安全なクライアント生成をサポートします。
-
 ### [@hiyocord/discord-rest-api](discord-rest-api.ja.md)
 
 Discord REST API v10の型安全なTypeScriptクライアントです。公式OpenAPI仕様から自動生成された型定義を使用します。
@@ -61,14 +57,16 @@ npm run fixlint
 hiyocord-packages/
 ├── packages/
 │   ├── tsconfig/              # 共有TypeScript設定
-│   ├── rest-api-core/          # REST APIクライアント基盤
 │   ├── discord-rest-api/       # Discord APIクライアント
 │   ├── github-rest-api/        # GitHub APIクライアント
 │   └── discord-interaction-client/  # Interaction処理
-├── package.json               # ワークスペース設定
+├── package.json               # ワークスペース設定（workspaces）
 └── .github/workflows/
     └── build_and_release.yml  # CI/CDパイプライン
 ```
+
+!!! note
+    リポジトリには`packages/rest-api-core`ディレクトリも存在しますが、ルートの`package.json`の`workspaces`には含まれておらず、他パッケージからも参照されていません。実質的に使用されていないため、このドキュメントの対象パッケージからは除外しています。
 
 ## ビルドシステム
 

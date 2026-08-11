@@ -18,7 +18,8 @@ Discord interactionの中央ハブとして機能します。Discordからのイ
 - Discord interactionの検証とルーティング
 - マニフェストベースのサービス登録
 - Discord APIへの自動コマンド登録
-- HMAC-SHA256ベースのサービス間認証
+- Ed25519公開鍵暗号ベースのサービス間認証
+- マニフェスト承認ワークフローとDiscord APIプロキシによる権限スコープ制御
 
 [詳細を見る →](nexus/index.ja.md)
 
@@ -30,7 +31,6 @@ Discord interactionの中央ハブとして機能します。Discordからのイ
 - `@hiyocord/discord-rest-api` - Discord API v10クライアント
 - `@hiyocord/github-rest-api` - GitHub APIクライアント
 - `@hiyocord/discord-interaction-client` - Interaction処理とレスポンスビルダー
-- `@hiyocord/rest-api-core` - OpenAPIベースのREST APIクライアント基盤
 
 [詳細を見る →](packages/index.ja.md)
 

@@ -7,18 +7,22 @@ edit_uri: edit/master/docs/
 
 nav:
   - ホーム: index.ja.md
-  - Getting Started: getting-started/index.ja.md
-  - Hiyocord Nexus:
-    - 概要: nexus/index.ja.md
-    - 認証システム: nexus/authentication.ja.md
-  - Hiyocord Packages:
-    - 概要: packages/index.ja.md
-    - '@hiyocord/tsconfig': packages/tsconfig.ja.md
-    - '@hiyocord/wrangler-configurer': packages/wrangler-configurer.ja.md
-    - '@hiyocord/discord-rest-api': packages/discord-rest-api.ja.md
-    - '@hiyocord/github-rest-api': packages/github-rest-api.ja.md
-    - '@hiyocord/discord-interaction-client': packages/discord-interaction-client.ja.md
-  - Service Workers: service-workers/index.ja.md
+  - 開発者向け:
+    - hiyocord serviceの開発者:
+      - Getting Started: developers/service-developer/getting-started/index.ja.md
+      - Hiyocord Nexus:
+        - 概要: developers/service-developer/nexus/index.ja.md
+        - 認証システム: developers/service-developer/nexus/authentication.ja.md
+      - Hiyocord Packages:
+        - 概要: developers/service-developer/packages/index.ja.md
+        - '@hiyocord/tsconfig': developers/service-developer/packages/tsconfig.ja.md
+        - '@hiyocord/wrangler-configurer': developers/service-developer/packages/wrangler-configurer.ja.md
+        - '@hiyocord/discord-rest-api': developers/service-developer/packages/discord-rest-api.ja.md
+        - '@hiyocord/github-rest-api': developers/service-developer/packages/github-rest-api.ja.md
+        - '@hiyocord/discord-interaction-client': developers/service-developer/packages/discord-interaction-client.ja.md
+      - Service Workers: developers/service-developer/service-workers/index.ja.md
+    - hiyocordのコントリビューター:
+      - 概要: developers/contributor/index.ja.md
 
 plugins:
   - search:
